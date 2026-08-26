@@ -17,7 +17,7 @@ github_credentials_id: github-credentials
 github_username: NAMANARI36
 
 container_images_ssh_user: ansible
-container_images_ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE46cC1T74VSR9E0GI8gh8pC0nY3GxA6fdYec0nMD2dg alessiopapi@MBP-di-Alessio.localdomain"
+container_images_ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJCmUvB0aKD+iR3yQdzfEsKMclmyQItVIMjCCNm/QFhF alessiopapi@MacBook-Pro-di-Alessio.local"
 target_ssh_credentials_id: target-ssh-key
 
 kubeconfig_credentials_id: kubeconfig-formazione-sou
