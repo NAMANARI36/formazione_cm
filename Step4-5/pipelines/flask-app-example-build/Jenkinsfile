@@ -2,7 +2,7 @@
 pipeline {
     // Definisce su quale nodo far girare la pipeline, in questo caso su qualsiasi nodo che abbia il tag "build"
     agent { label 'build' }
-    
+
     // Definisce variabili d'ambiente valide in tutta la pipeline. Ogni stage può accedere ai valori definiti attraverso l'oggetto env
     // L'oggetto env contiene sia le variabili di ambiente definite in environment, sia le variabili create automaticamente da jenkins
     environment {
@@ -13,38 +13,51 @@ pipeline {
 
         // Percorso al Socket Podman dell'host con stringa URI, montato nell'agent (per DooD).
         CONTAINER_HOST = 'unix:///run/podman/podman.sock'
+
+        // La workspace è la root del repo clonato, non la cartella del
+        // Jenkinsfile: i path partono da lì.
+        APP_DIR         = 'Step4-5/app'
+        DEPLOY_PLAYBOOK = 'Step4-5/pipelines/flask-app-example-build/deploy.yml'
+
+        // Il container target viene ricreato a ogni run del playbook e per questo cambia host key
+        // Per evitare che Ansible fallisca la connessione SSH ho disattivato il controllo dell'host key
+        ANSIBLE_HOST_KEY_CHECKING = 'False'
+
+        // ContainerName del target sulla rete podman.
+        TARGET_HOST = 'rocky-os'
     }
-    
+
     // Definisce i vari stage della pipeline, ogni stage presenta un nome ed è composto da vari steps
     stages {
         stage('Determina il tag immagine') {
-            // Steps necessari per determinare quale tag dare all'immagine docker
+            // Steps necessari per determinare quale tag dare all'immagine
             steps {
                 //script apre una zona di script Groovy, utile in caso bisogni implementare una logica che la sintassi dichiarativa non permette
                 script {
-
-                env.IMAGE_TAG = "1.0.${env.BUILD_NUMBER}"
-                echo "Immagine: ${IMAGE_NAME}:${env.IMAGE_TAG}"
-
-              }
+                    // BUILD_NUMBER è la variabili d'ambiente che fornisce Jenkins e cresce a ogni esecuzione della pipeline
+                    env.IMAGE_TAG = "1.0.${env.BUILD_NUMBER}"
+                    echo "Immagine: ${IMAGE_NAME}:${env.IMAGE_TAG}"
+                }
             }
         }
-        // Steps per buildare l'immagine sull'host (Dood)
+
+        // Steps per buildare l'immagine sull'host (DooD)
         stage('Build immagine') {
             // Step che utilizza il comando sh per eseguire un comando shell sull'agent
             steps {
                 // podman --remote build dice alla podman CLI di far eseguire la build all'host
                 // la flag -t assegna il nome all'immagine
-                // la flag -f segnala dove si trova il DockerFile
+                // la flag -f segnala dove si trova il Dockerfile
                 sh '''
                     podman --remote build \
                         -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                        -f app/Dockerfile app
+                        -f ${APP_DIR}/Dockerfile ${APP_DIR}
                 '''
             }
         }
-        
-        // Steps per pushare l'immagine buildata su dockerhub
+
+        // Steps per pushare l'immagine buildata sul registry locale
+        // Nessun login dato che il registry non ha autenticazione
         stage('Push sul registry') {
             steps {
                 sh 'podman --remote push ${IMAGE_NAME}:${IMAGE_TAG}'
@@ -53,22 +66,28 @@ pipeline {
 
         stage('Deploy sul container target') {
             steps {
+                // withCredentials associa la credential SSH a variabili valide
+                // solo nel suo scope: la privata non compare nel repo né nei log.
                 withCredentials([sshUserPrivateKey(
-                credentialsId: 'target-ssh-key',
-                keyFileVariable: 'SSH_KEY',
-                usernameVariable: 'SSH_USER'
-        )]) {
-            
-            sh '''
-                ansible-playbook deploy.yml \
-                  -i "rocky-os," \
-                  -u "${SSH_USER}" \
-                  --private-key "${SSH_KEY}" \
-                  -e "image=${IMAGE_NAME}:${IMAGE_TAG}"
-            '''
-        }
+                    credentialsId: 'target-ssh-key',
+                    keyFileVariable: 'SSH_KEY',
+                    usernameVariable: 'SSH_USER'
+                )]) {
+                    sh '''
+                        ansible-playbook ${DEPLOY_PLAYBOOK} \
+                          -i "${TARGET_HOST}," \
+                          -u "${SSH_USER}" \
+                          --private-key "${SSH_KEY}" \
+                          -e "image=${IMAGE_NAME}:${IMAGE_TAG}"
+                    '''
+                }
             }
         }
     }
 
+    post {
+        success {
+            echo "Deploy completato: ${IMAGE_NAME}:${env.IMAGE_TAG}"
+        }
+    }
 }
