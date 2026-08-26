@@ -1,0 +1,22 @@
+---
+- name: Deploy dell'immagine sul container target
+  hosts: all
+  become: true 
+  gather_facts: false
+
+  vars:
+    app_name: prova-flask-app
+
+  tasks:
+    - name: Avvia il container dell'applicazione
+      ansible.builtin.command:
+        cmd: >-
+          podman --remote run -d --replace
+          --name {{ app_name }}
+          -p 8000:8080
+          {{ image }}
+      changed_when: true
+
+    - name: Mostra il container avviato
+      ansible.builtin.debug:
+        msg: "Avviato {{ app_name }} da {{ image }} su porta 8000"
