@@ -1,0 +1,38 @@
+[Unit]
+Description=registry (Podman Quadlet)
+
+# Specifica le dipendenze del servizio, assicurando che la rete sia pronta prima dell'avvio del container.
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+# Nome del container che apparirà con "podman ps"
+ContainerName={{ registry_name }}
+
+
+Image={{ registry_image }}
+
+# Rete creata dal ruolo podman_network
+Network={{ registry_network }}
+
+# Le variabili d'ambiente REGISTRY_* sovrascrivono le chiavi corrispondenti di
+# /etc/distribution/config.yml del registry
+
+# Segnalo nelle variabili d'ambiente del registry il path dello storage
+Environment=REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY={{ registry_data_path }}
+
+# Monto sul path del blob store un volume named gestito da Podman, in modo tale da avere i dati persistenti anche se il container viene rimosso
+Volume={{ registry_volume_name }}:{{ registry_data_path }}
+
+# Porta pubblicata sull'host, parametrizzata dal valore della variabile registry_port
+# port binding tra la porta 5000 del container e la porta scelta per host
+PublishPort={{ registry_port }}:5000
+
+
+[Service]
+Restart=always
+# Tempo di timeout più alto per dare il tempo al primo avvio per completare il pull dell'immagine.
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

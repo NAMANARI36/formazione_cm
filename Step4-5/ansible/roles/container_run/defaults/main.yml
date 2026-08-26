@@ -1,0 +1,10 @@
+---
+
+# Prefisso del registry da dove pullare le immagini
+container_run_registry: "{{ container_images_registry }}"
+
+# Determina la rete a cui verranno attaccati i container runnati
+container_run_network: "{{ podman_network_name }}"
+
+# Lista di rifermineto utilizzata per le build delle immagini OS
+container_run_images: "{{ container_images_builds }}"

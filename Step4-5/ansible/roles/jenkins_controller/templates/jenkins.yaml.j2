@@ -1,0 +1,79 @@
+# Configurazione JCasC (Jenkins Configuration as Code) del controller.
+# Descrive lo stato desiderato: sicurezza, utente, nodo agent.
+
+jenkins:
+  systemMessage: "Jenkins configurato via JCasC utilizzando il plugin configuration-as-code"
+
+  # --- sicurezza ---
+  # securityRealm definisce la sorgente degli utenti.
+  # 'local' = database interno di Jenkins
+  securityRealm:
+    local:
+      allowsSignup: false        # nessuna auto-registrazione dall'esterno
+      users:
+        - id: "{{ jenkins_admin_user }}"
+          password: "{{ jenkins_admin_password }}"
+
+  # --- AUTORIZZAZIONE ---
+  # Adeguato a un lab a utente singolo. In produzione: matrix-auth o role-strategy.
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+  # --- ARCHITETTURA ESECUZIONE ---
+  # Numero executor del controller
+  numExecutors: "{{ jenkins_controller_num_executors }}"
+
+  # --- NODO AGENT ---
+  # Dichiara il nodo dedicato all'agent JNLP. Applicando questo blocco, il controller
+  # crea il nodo e genera il secret che l'agent userà per agganciarsi.
+  nodes:
+    - permanent:
+        name: "{{ jenkins_agent_node_name }}"
+        labelString: "{{ jenkins_agent_label }}"
+        remoteFS: "{{ jenkins_agent_workdir }}"   # working dir dell'agent
+        numExecutors: "{{ jenkins_agent_executors }}"
+        mode: NORMAL
+        retentionStrategy: "always"       # il nodo resta sempre connesso
+        launcher:
+          inbound:
+            workDirSettings:
+              disabled: false
+              failIfWorkDirIsMissing: false
+              internalDir: "remoting"
+# location.url serve a Jenkins per costruire URL corretti (link, callback agent).
+unclassified:
+  location:
+    url: "{{ jenkins_controller_url }}"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "{{ dockerhub_credentials_id }}"
+              username: "{{ dockerhub_username }}"
+              password: "{{ vault_dockerhub_token }}"
+              description: "Docker Hub access token per push immagini"
+          - usernamePassword:
+              scope: GLOBAL
+              id: "{{ github_credentials_id }}"
+              username: "{{ github_username }}"
+              password: "{{ vault_github_token }}"
+              description: "GitHub token per scan repository"
+          - basicSSHUserPrivateKey:
+              scope: GLOBAL
+              id: "{{ target_ssh_credentials_id }}"
+              username: "{{ container_images_ssh_user }}"
+              privateKeySource:
+                directEntry:
+                  privateKey: "{{ vault_target_ssh_private_key }}"
+              description: "Chiave SSH per il deploy sul container target"
+          - file:
+              scope: GLOBAL
+              id: "{{ kubeconfig_credentials_id }}"
+              fileName: "kubeconfig"
+              secretBytes: "{{ vault_kubeconfig_b64 }}"
+              description: "Kubeconfig cluster kind formazione-sou per deploy Helm"
+      

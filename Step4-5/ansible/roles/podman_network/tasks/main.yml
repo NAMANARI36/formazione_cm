@@ -1,0 +1,7 @@
+- name: Crea la rete Podman per Jenkins
+  become: true
+  containers.podman.podman_network:
+    name: "{{ podman_network_name }}"
+    subnet: "{{ podman_network_subnet }}"
+    gateway: "{{ podman_network_gateway }}"
+    state: present

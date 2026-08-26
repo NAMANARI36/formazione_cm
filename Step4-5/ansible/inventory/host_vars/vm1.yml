@@ -1,0 +1,9 @@
+# Questo file contiene variabili dedicate al singolo host, in questo caso vm1.
+# Il nome del file deve corrispondere al dell'host specificato nell'inventory.
+
+# Ip della vm1, che Ansible userà per connettersi a questo host. Se non specificato, Ansible userà il nome dell'host come indirizzo.
+ansible_host: 192.168.56.10
+
+# Chiave privata generata da vagrant per accedere alla vm1.
+# La chiave pubblica corrispondente è già presente nei known_hosts della vm1, così Ansible può autenticarsi senza password.
+ansible_ssh_private_key_file: ../vagrant/.vagrant/machines/vm1/virtualbox/private_key

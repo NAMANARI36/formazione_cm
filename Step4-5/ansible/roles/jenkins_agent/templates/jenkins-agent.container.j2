@@ -1,0 +1,55 @@
+# Unit Quadlet per il Jenkins Agent (inbound, WebSocket).
+# Si connette al controller sulla porta HTTP (8080) via WebSocket,
+# autenticandosi con il secret recuperato da Ansible.
+
+[Unit]
+Description=Jenkins Agent (Podman Quadlet)
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName={{ jenkins_agent_container_name }}
+
+SecurityLabelDisable=true
+User=root
+
+# Immagine custom locale dell'inbound-agent
+Image=localhost/{{ jenkins_agent_image }}:{{ jenkins_agent_image_tag }}
+
+# Stessa rete del controller e IP statico dell'agent.
+Network={{ podman_network_name }}
+IP={{ jenkins_agent_ip }}
+
+# --- Variabili d'ambiente per la connessione ---
+# URL del controller
+Environment=JENKINS_URL={{ jenkins_controller_url }}
+
+# Nome del nodo, deve combaciare col nome impostato nel JCasC del controller (jenkins_agent_node_name)
+Environment=JENKINS_AGENT_NAME={{ jenkins_agent_node_name }}
+
+Environment=ANSIBLE_HOST_KEY_CHECKING=False
+
+# Secret recuperato da Ansible dal controller.
+Environment=JENKINS_SECRET={{ jenkins_agent_secret }}
+
+# Working directory dell'agent dentro il container.
+Environment=JENKINS_AGENT_WORKDIR={{ jenkins_agent_workdir }}
+
+# Attiva la connessione via WebSocket invece che TCP.
+Environment=JENKINS_WEB_SOCKET=true
+
+# Dice alla CLI Podman dell'agent di usare quel socket come endpoint remoto.
+Environment=CONTAINER_HOST=unix://{{ podman_host_socket }}
+
+
+# --- Build via socket dell'host (Podman-out-of-Podman) ---
+# Monta il socket Podman dell'host dentro il container.
+# :z permette l'accesso con SELinux enforcing (shared label).
+Volume={{ podman_host_socket }}:{{ podman_host_socket }}:z
+
+[Service]
+Restart=always
+TimeoutStartSec={{ jenkins_agent_start_timeout }}
+
+[Install]
+WantedBy=multi-user.target default.target

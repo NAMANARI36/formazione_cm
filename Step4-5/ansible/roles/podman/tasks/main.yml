@@ -1,0 +1,14 @@
+- name: Installa i pacchetti Podman
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ podman_packages }}"
+    state: present  
+    update_cache: true
+# Espone /run/podman/podman.sock: l'agent ci monterà sopra per buildare
+# le immagini "fuori" dal proprio container (pattern Podman-out-of-Podman).
+- name: Abilita e avvia il socket API di Podman
+  become: true
+  ansible.builtin.systemd:
+    name: podman.socket
+    enabled: true
+    state: started

@@ -1,0 +1,30 @@
+
+
+[Unit]
+Description=Container {{ item.name }}
+Wants=network-online.target
+After=network-online.target
+
+# Specifica la dipendenza al servizio registry, in modo che venga avviato prima di questo container
+Requires=registry.service
+After=registry.service
+
+[Container]
+# Nome del container che apparirà con "podman ps"
+ContainerName={{ item.name }}
+
+# Immagine di riferimento per la creazione del container parametrizzata dai dati della lista di dizionari degli OS
+Image={{ container_run_registry }}{{ item.name }}:{{ item.tag }}
+
+# Determina la rete a cui verranno attaccati i container runnati
+Network={{ container_run_network }}
+
+# La porta interna del container è 22, mentre quella esterna è parametrizzata dai dati della lista di dizionari degli OS
+PublishPort={{ item.ssh_port }}:22
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
