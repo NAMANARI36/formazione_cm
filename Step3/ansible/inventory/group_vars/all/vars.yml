@@ -1,0 +1,19 @@
+# Questo file contiene variabili del gruppo speciale "all". 
+# Un gruppo è un insieme di host raggruppati sotto un nome comune.
+# I gruppi sono utili per organizzare gli host in base a caratteristiche condivise.
+# all è il gruppo padre che contiene tutti gli altri gruppi e host.
+# Qui vanno definite tutte le variabili condivise da tutti i nodi gestiti da Ansible.
+
+
+# Variabili per Ansible dove definiamo l'utente SSH di default che Ansible utilizzerà per connettersi agli host.
+ansible_user: vagrant
+# Path dell'interprete Python da usare sugli host gestiti da Ansible.
+ansible_python_interpreter: /usr/bin/python3
+
+# Variabili della rete Podman che sarà creata sul nodo gestito da Ansible.
+podman_network_name: lab-net
+podman_network_subnet: 10.89.0.0/24
+podman_network_gateway: 10.89.0.1
+
+# Sostituisce il prefisso del ruolo container_images, che di default è vuoto e quindi le immagini vengono buildate solo localmente e non vengono pushate su alcun registry.
+container_images_registry: "localhost:5000/"

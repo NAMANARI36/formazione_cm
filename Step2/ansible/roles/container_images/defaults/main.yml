@@ -1,0 +1,27 @@
+---
+
+# Path della directory sulla VM dedicata al build context
+container_images_context_dir: /var/tmp/ansible-image-builds
+
+# Determina il prefisso del nome immagine, che viene utilizzato da podman per sapere su quale registry fare il push.
+# Se vuoto, le immagini vengono buildate solo localmente e non vengono pushate su alcun registry. 
+container_images_registry: ""
+
+
+container_images_ssh_user: ansible
+
+container_images_ssh_pubkey: ""
+
+
+# Se true la build viene rifatta anche quando nome:tag esiste gia'
+container_images_force_rebuild: true
+
+# Lista di dizionari che contiene i dati di ciascuna immagine da buildare.
+# Deve essere coerente con la struttura di cartelle messe in containerfiles/
+container_images_builds:
+  - name: debian-os
+    tag: "1.0.0"
+    path: debian
+  - name: rocky-os
+    tag: "1.0.0"
+    path: rocky   # rappresenta il path alla cartella dedicata all'os dentro containerfiles/

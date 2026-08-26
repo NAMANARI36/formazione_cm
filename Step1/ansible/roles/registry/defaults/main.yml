@@ -1,0 +1,16 @@
+---
+
+# Nome del container che apparirà con "podman ps"
+registry_name: registry
+
+# Indirizzo per il pull dell'immagine del registry
+registry_image: docker.io/library/registry:3.0.0
+
+# Rete Podman a cui verrà agganciato il container del registry
+registry_network: "{{ podman_network_name }}"
+
+# Nome del Named volume gestito da Podman che conterrà i dati del registry
+registry_volume_name: registry-data
+
+# Default path dei dati del registry dentro il container, che verrà mappato sul Named volume
+registry_data_path: /var/lib/registry

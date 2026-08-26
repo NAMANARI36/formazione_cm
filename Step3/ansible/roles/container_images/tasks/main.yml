@@ -1,0 +1,46 @@
+---
+
+- name: Verifica che la chiave pubblica sia stata fornita
+  ansible.builtin.assert:
+    that:        # condizione di controllo per il proseguimento del play
+      - container_images_ssh_pubkey | length > 0
+      - container_images_ssh_user | length > 0
+    fail_msg: >-
+      container_images_ssh_pubkey e container_images_ssh_user sono obbligatorie
+
+- name: Crea la directory del build context
+  ansible.builtin.file:
+    path: "{{ container_images_context_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copia dal control node alla VM le cartelle per gli OS, ciascuna delle quali farà da build context per la propria immagine
+  ansible.builtin.copy:
+    src: containerfiles/
+    dest: "{{ container_images_context_dir }}/"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Build delle immagini per ogni OS presente nella lista container_images_builds
+  containers.podman.podman_image:
+    name: "{{ container_images_registry }}{{ item.name }}"
+    tag: "{{ item.tag }}"
+    path: "{{ container_images_context_dir }}/{{ item.path }}"
+    force: "{{ container_images_force_rebuild }}"
+    push: "{{ container_images_push }}"
+    build:
+      extra_args: >-   
+        --build-arg SSH_USER={{ container_images_ssh_user | quote }}
+        --build-arg SSH_PUBKEY={{ container_images_ssh_pubkey | quote }}
+  loop: "{{ container_images_builds }}"
+  loop_control:
+    label: "{{ item.name }}:{{ item.tag }}"
+
+# quote è un filtro jinja che serve per avvolgere la stringa tra apici, in modo tale che non venga interpretata male dalla shell, quando i parametri di extra_args vengono passati al comando podman build
+# Dato che la chiave pubblica (e potenzialmente anche l'utente) arrivano da fuori il ruolo (dato che il ruolo non si occupa di generarli), utilizzo extra_args per passarli come build-arg a podman. In questo modo il Containerfile non ha bisogno di conoscerene i valori.
+# loop esegue il modulo per ogni elemento della lista container_images_builds
+

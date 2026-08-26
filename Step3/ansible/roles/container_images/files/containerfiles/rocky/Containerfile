@@ -1,0 +1,51 @@
+FROM docker.io/rockylinux/rockylinux:9
+
+# Parametri passati dal role
+# Defaults che possono essere sovrascritto via build-arg, la pubkey è obbligatoria
+ARG SSH_USER=ansible
+ARG SSH_PUBKEY
+
+RUN test -n "$SSH_PUBKEY" || (echo "ERRORE: build-arg SSH_PUBKEY mancante" >&2; exit 1)
+
+# Download e installazione dei pacchetti richiesti
+# "dnf clean all" svuota tutte le cache di dnf
+RUN dnf -y install \
+        openssh-server \
+        sudo \
+        python3 \
+        python3-dnf
+
+RUN printf '%s\n' \
+        'PermitRootLogin no' \
+        'PasswordAuthentication no' \
+        'PubkeyAuthentication yes' \
+        'UsePAM yes' \
+        > /etc/ssh/sshd_config.d/10-ansible.conf
+
+# %s specifica il formato a printf e \n va a capo
+
+
+RUN useradd --create-home --shell /bin/bash "$SSH_USER" \
+    && install -d -m 0700 -o "$SSH_USER" -g "$SSH_USER" "/home/$SSH_USER/.ssh" \
+    && echo "$SSH_PUBKEY" > "/home/$SSH_USER/.ssh/authorized_keys" \
+    && chmod 0600 "/home/$SSH_USER/.ssh/authorized_keys" \
+    && chown "$SSH_USER:$SSH_USER" "/home/$SSH_USER/.ssh/authorized_keys" \
+    && echo "$SSH_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/90-$SSH_USER" \
+    && chmod 0440 "/etc/sudoers.d/90-$SSH_USER" \
+    && visudo -c
+
+# -90 è il numero di priorità per la lettura della regola, più basso è il numero più alta è la priorità
+# target ansible, ALL=(ALL) il target può impersonare qualsiasi utente, NOPASSWD:ALL non richiede la password per eseguire qualsiasi comando, ALL finale indica che il target può eseguirequalsiasi comando
+# NOPASSWD:ALL è utile per evitare che ansible si blocchi al promp di richiesta della password
+# visudo -c controlla tutti i file sudoers, file di configurazione di sudo.
+
+# Espone la porta 22 per SSH
+EXPOSE 22
+
+CMD ["/bin/sh", "-c", "ssh-keygen -A && exec /usr/sbin/sshd -D -e"]
+
+
+# "/bin/sh" è la shell che esegue il comando, "-c" indica che il comando successivo è una stringa da eseguire, "ssh-keygen -A" genera le chiavi host che servono a dimostrare l'identità del server nelle connessioni SSH
+# "exec /usr/sbin/sshd -D -e" sostitusce la shell con il programma indicato, quindi il demone SSH.
+# -e manda i log su stderr rendendoli leggibili con "podman logs"
+# -D fa si che sshd non diventi un demone, ma resti in primo piano, cosi' il container non termina subito

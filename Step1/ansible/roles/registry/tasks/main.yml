@@ -1,0 +1,14 @@
+---
+
+- name: Deploya la unit Quadlet del registry
+  ansible.builtin.template:
+    src: registry.container.j2
+    dest: "/etc/containers/systemd/{{ registry_name }}.container"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Ricarica systemd daemon
+
+- name: Applica le unit Quadlet
+  ansible.builtin.meta: flush_handlers
+

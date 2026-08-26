@@ -1,0 +1,24 @@
+---
+
+- name: Deploya le unit Quadlet dei container
+  ansible.builtin.template:
+    src: os-container.container.j2
+    dest: "/etc/containers/systemd/{{ item.name }}.container"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ container_run_images }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Ricarica systemd daemon
+
+- name: Applica le unit Quadlet
+  ansible.builtin.meta: flush_handlers
+
+- name: Avvia i container
+  ansible.builtin.systemd:
+    name: "{{ item.name }}.service"
+    state: started
+  loop: "{{ container_run_images }}"
+  loop_control:
+    label: "{{ item.name }}"

@@ -1,0 +1,14 @@
+# Un playbook è il file che descrive cosa Ansible deve fare e su quali host.
+# Collega i gruppi di host (segnalati dall'inventory) alla logica da applicare (task o ruoli), definendo l'ordine e le condizioni di esecuzione. 
+# I tags definiti nei ruoli possono essere usati per eseguire solo una parte del playbook, invece di tutto il playbook.
+- name:  Configura registry docker con Podman su Rocky Linux 9
+  hosts: all
+  gather_facts: true
+  become: true
+  roles:  
+    - role: podman
+      tags: [podman]
+    - role: podman_network
+      tags: [podman_network]
+    - role: registry
+      tags: [registry]

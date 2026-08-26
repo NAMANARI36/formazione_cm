@@ -1,0 +1,6 @@
+- name: Installa i pacchetti Podman
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ podman_packages }}"
+    state: present  
+    update_cache: true

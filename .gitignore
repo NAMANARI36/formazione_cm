@@ -1,0 +1,4 @@
+keys/
+**/.vagrant/
+**/.ansible_cache/
+**/.retry
