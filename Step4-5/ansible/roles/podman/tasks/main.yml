@@ -12,3 +12,11 @@
     name: podman.socket
     enabled: true
     state: started
+
+# Il socket appartiene a root, i processi dentro i container non sono lo stesso
+# root dell'host e riceverebbero permission denied.
+- name: Rende il socket Podman accessibile dai container
+  become: true
+  ansible.builtin.file:
+    path: "{{ podman_host_socket }}"
+    mode: "0666"

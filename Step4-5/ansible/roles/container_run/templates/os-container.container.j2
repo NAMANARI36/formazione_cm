@@ -13,6 +13,12 @@ After=registry.service
 # Nome del container che apparirà con "podman ps"
 ContainerName={{ item.name }}
 
+SecurityLabelDisable=true
+
+Volume={{ podman_host_socket }}:{{ podman_host_socket }}:z
+
+AddCapability=CAP_AUDIT_WRITE
+
 # Immagine di riferimento per la creazione del container parametrizzata dai dati della lista di dizionari degli OS
 Image={{ container_run_registry }}{{ item.name }}:{{ item.tag }}
 
