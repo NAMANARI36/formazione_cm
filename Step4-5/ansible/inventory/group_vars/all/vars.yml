@@ -4,25 +4,21 @@
 # all è il gruppo padre che contiene tutti gli altri gruppi e host.
 # Qui vanno definite tutte le variabili condivise da tutti i nodi gestiti da Ansible.
 
-
 # Variabili per Ansible dove definiamo l'utente SSH di default che Ansible utilizzerà per connettersi agli host.
 ansible_user: vagrant
 # Path dell'interprete Python da usare sugli host gestiti da Ansible.
 ansible_python_interpreter: /usr/bin/python3
 
-dockerhub_credentials_id: dockerhub-credentials
-dockerhub_username: namanari36
 
 github_credentials_id: github-credentials
 github_username: NAMANARI36
 
 container_images_ssh_user: ansible
+# Chiave pubblica SSH che verrà messa nei known_hosts del nodo target per permettere ad Ansible di connettersi via SSH
 container_images_ssh_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJCmUvB0aKD+iR3yQdzfEsKMclmyQItVIMjCCNm/QFhF alessiopapi@MacBook-Pro-di-Alessio.local"
 target_ssh_credentials_id: target-ssh-key
 
-kubeconfig_credentials_id: kubeconfig-formazione-sou
 
-# region Rete Podman
 # Variabili della rete Podman che sarà creata sul nodo gestito da Ansible.
 podman_network_name: jenkins-net
 podman_network_subnet: 10.89.0.0/24
@@ -31,14 +27,13 @@ podman_network_gateway: 10.89.0.1
 # Ip statici dei container Jenkins Controller e Jenkins Agent, che saranno connessi alla rete Podman definita sopra.
 jenkins_controller_ip: 10.89.0.10
 jenkins_agent_ip: 10.89.0.11 
-# endregion
 
-# region Jenkins Controller: variabili di accesso
+# Jenkins Controller: variabili di accesso
 jenkins_admin_user: admin
 jenkins_admin_password: "{{ vault_jenkins_admin_password }}" # Riferimento a una variabile segreta definita nel vault Ansible, che contiene la password dell'utente admin di Jenkins.
-# endregion
 
-# region Variabili per il Jenkins Agent, utilizzate nei tasks e nel file di configurazione jenkins-agent.container (Quadlet)
+
+# Variabili per il Jenkins Agent, utilizzate nei tasks e nel file di configurazione jenkins-agent.container (Quadlet)
 jenkins_agent_node_name: agent-1 # nome che identifica in modo univoco il nodo agent sul controller
 jenkins_agent_label: build # label che identifica le capacità del nodo agent
 jenkins_agent_workdir: /home/jenkins/agent # specifica il percorso dove Jenkins creerà la sua directory di lavoro sull'Agent
@@ -52,7 +47,7 @@ jenkins_agent_start_timeout: 120 # Timeout di avvio del servizio (secondi).
 jenkins_agent_wait_retries: 20 # Numero di tentativi
 jenkins_agent_wait_delay: 6 # Numero di secondi di attesa tra un tentativo e l'altro
 
-# endregion
+
 
 # region Variabili per il Jenkins Controller, utilizzate nei tasks e nel file di configurazione jenkins.yaml (JCasC) e jenkins-controller.container (Quadlet)
 jenkins_controller_num_executors: 0 # Impostato a 0 perchè il controller non deve eseguire build ma delegare

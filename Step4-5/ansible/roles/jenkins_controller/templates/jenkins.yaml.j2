@@ -52,12 +52,6 @@ credentials:
       - credentials:
           - usernamePassword:
               scope: GLOBAL
-              id: "{{ dockerhub_credentials_id }}"
-              username: "{{ dockerhub_username }}"
-              password: "{{ vault_dockerhub_token }}"
-              description: "Docker Hub access token per push immagini"
-          - usernamePassword:
-              scope: GLOBAL
               id: "{{ github_credentials_id }}"
               username: "{{ github_username }}"
               password: "{{ vault_github_token }}"
@@ -70,10 +64,4 @@ credentials:
                 directEntry:
                   privateKey: "{{ vault_target_ssh_private_key }}"
               description: "Chiave SSH per il deploy sul container target"
-          - file:
-              scope: GLOBAL
-              id: "{{ kubeconfig_credentials_id }}"
-              fileName: "kubeconfig"
-              secretBytes: "{{ vault_kubeconfig_b64 }}"
-              description: "Kubeconfig cluster kind formazione-sou per deploy Helm"
       

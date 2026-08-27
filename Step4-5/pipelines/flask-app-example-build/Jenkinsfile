@@ -85,6 +85,7 @@ pipeline {
         }
     }
 
+    // Il blocco post definisce azioni da eseguire dopo che tutti gli stage sono finiti.
     post {
         success {
             echo "Deploy completato: ${IMAGE_NAME}:${env.IMAGE_TAG}"
