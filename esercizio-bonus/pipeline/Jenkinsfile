@@ -7,7 +7,7 @@ pipeline {
     stages {
         stage('Avvio Playbook Ansible che genera playbook Ansible') {
             steps {
-                sh 'ansible-playbook pipeline/playbook-generatore.yml'
+                sh 'ansible-playbook esercizio-bonus/pipeline/playbook-generatore.yml'
             }
         }
 
