@@ -16,7 +16,7 @@ pipeline {
     // Il blocco post definisce azioni da eseguire dopo che tutti gli stage sono finiti.
     post {
         success {
-            archiveArtifacts artifacts: 'generated/*.yml'
+            archiveArtifacts artifacts: 'esercizio-bonus/generatore/generated/*.yml'
         }
     }
 }
