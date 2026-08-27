@@ -1,7 +1,7 @@
 // Blocco radice che apre la pipeline
 pipeline {
     // Definisce su quale nodo far girare la pipeline, in questo caso su qualsiasi nodo che abbia il tag "build"
-    agent { label 'ansible' }
+    agent any
 
     // Definisce i vari stage della pipeline, ogni stage presenta un nome ed è composto da vari steps
     stages {
@@ -12,7 +12,7 @@ pipeline {
         }
 
     }
-    
+
     // Il blocco post definisce azioni da eseguire dopo che tutti gli stage sono finiti.
     post {
         success {
