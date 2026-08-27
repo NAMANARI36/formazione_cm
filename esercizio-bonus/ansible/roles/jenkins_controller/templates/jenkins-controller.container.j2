@@ -1,0 +1,41 @@
+# Unit Quadlet per il Jenkins Controller.
+# Podman legge questo file da /etc/containers/systemd/ e, dopo un
+# daemon-reload, genera automaticamente una unit systemd .service.
+# in modo tale da poter gestire il container come servizio di sistema
+
+[Unit]
+Description=Jenkins Controller (Podman Quadlet)
+# Specifica le dipendenze del servizio, assicurando che la rete sia pronta prima dell'avvio del container.
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+# Nome del container che apparirà con "podman ps"
+ContainerName={{ jenkins_controller_container_name }}
+
+# Immagine custom costruita localmente attraverso il task di building
+# Il prefisso localhost/ indica un'immagine locale, quindi non presa da registry (dockerhub).
+Image=localhost/{{ jenkins_controller_image }}:{{ jenkins_controller_image_tag }}
+
+# Rete dedicata e IP statico, creati dal ruolo podman_network.
+Network={{ podman_network_name }}
+IP={{ jenkins_controller_ip }}
+
+# Persistenza di JENKINS_HOME su named volume gestito da Podman.
+# Podman crea il volume se non esiste.
+Volume={{ jenkins_controller_volume_name }}:{{ jenkins_controller_home_dir }}
+
+
+
+# Impostazione del portforwarding che collega la porta della vm alla porta del container_controller, rendendo accessibile l'UI jenkins da fuori
+PublishPort={{ jenkins_controller_host_http_port }}:{{ jenkins_controller_container_http_port }}
+
+[Service]
+# Riavvia il container in caso si chiuda
+Restart=always
+# Timeout prima di dichiarare il fallimento nell'avvio del servizio jenkins
+TimeoutStartSec={{ jenkins_controller_start_timeout }}
+
+[Install]
+# Avvio automatico al boot della VM.
+WantedBy=multi-user.target default.target

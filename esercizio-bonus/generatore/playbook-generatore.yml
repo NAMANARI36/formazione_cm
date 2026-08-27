@@ -1,0 +1,46 @@
+---
+
+- name: Genera playbook
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Crea la directory di output
+      ansible.builtin.file:
+        path: "generated"
+        state: directory
+        mode: '0755'
+
+    - name: Scrive hello.yml
+      ansible.builtin.copy:
+        dest: "generated/hello.yml"
+        mode: '0644'
+        content: |
+          ---
+          - name: Primo playbook
+            hosts: localhost
+            connection: local
+            gather_facts: false
+            tasks:
+              - name: Stampa
+                ansible.builtin.debug:
+                  msg: "Hello World"
+
+
+    - name: Scrive podman-install-dnf.yml
+      ansible.builtin.copy:
+        dest: "generated/podman-install-dnf.yml"
+        mode: '0644'
+        content: |
+          ---
+          - name: Installa Podman
+            hosts: all
+            become: true
+            gather_facts: true
+            tasks:
+              - name: Installa i pacchetti Podman
+                ansible.builtin.dnf:
+                  name: podman
+                  state: present
+                  update_cache: true

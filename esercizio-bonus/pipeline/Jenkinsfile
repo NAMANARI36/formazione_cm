@@ -1,0 +1,22 @@
+// Blocco radice che apre la pipeline
+pipeline {
+    // Definisce su quale nodo far girare la pipeline, in questo caso su qualsiasi nodo che abbia il tag "build"
+    agent { label 'ansible' }
+
+    // Definisce i vari stage della pipeline, ogni stage presenta un nome ed è composto da vari steps
+    stages {
+        stage('Avvio Playbook Ansible che genera playbook Ansible') {
+            steps {
+                sh 'ansible-playbook pipeline/playbook-generatore.yml'
+            }
+        }
+
+    }
+    
+    // Il blocco post definisce azioni da eseguire dopo che tutti gli stage sono finiti.
+    post {
+        success {
+            archiveArtifacts artifacts: 'generated/*.yml'
+        }
+    }
+}

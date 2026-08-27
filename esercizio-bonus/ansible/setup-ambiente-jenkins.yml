@@ -1,0 +1,12 @@
+# Un playbook è il file che descrive cosa Ansible deve fare e su quali host.
+# Collega i gruppi di host (segnalati dall'inventory) alla logica da applicare (task o ruoli), definendo l'ordine e le condizioni di esecuzione. 
+# I tags definiti nei ruoli possono essere usati per eseguire solo una parte del playbook, invece di tutto il playbook.
+- name:  Configurazione dell'ambiente Jenkins
+  hosts: all
+  gather_facts: true
+  become: true
+  roles:
+    - role: podman
+    - role: podman_network
+    - role: jenkins_controller
+    - role: jenkins_agent

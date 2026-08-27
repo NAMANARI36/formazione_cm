@@ -1,0 +1,12 @@
+configuration-as-code
+instance-identity
+workflow-aggregator
+pipeline-model-definition
+git
+github
+github-branch-source
+credentials
+credentials-binding
+plain-credentials
+ssh-credentials
+kubernetes-cli

@@ -1,0 +1,76 @@
+---
+# 1. Crea la directory che farà da contesto di build (Dockerfile + file).
+- name: Crea la directory di build del controller
+  become: true
+  ansible.builtin.file:
+    path: "{{ jenkins_controller_build_dir }}"
+    state: directory
+    mode: "0755"
+
+# 2. Copia Dockerfile e plugins.txt nel contesto di build. (file statici che stanno in files/ del ruolo)
+- name: Copia Dockerfile e plugins.txt nel contesto di build
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item }}" # item è la variabile che prenderà il valore dei file nella loop.
+    dest: "{{ jenkins_controller_build_dir }}/{{ item }}"
+    mode: "0644"
+  loop:
+    - Dockerfile
+    - plugins.txt
+
+# 3. Renderizza il template JCasC nel contesto di build.
+- name: Renderizza la configurazione JCasC
+  become: true
+  ansible.builtin.template:
+    src: jenkins.yaml.j2
+    dest: "{{ jenkins_controller_build_dir }}/jenkins.yaml"
+    mode: "0644"
+  no_log: true
+
+# 4. Builda l'immagine custom dal contesto di build.
+- name: Builda l'immagine custom del controller
+  become: true
+  containers.podman.podman_image:
+    name: "{{ jenkins_controller_image }}"
+    tag: "{{ jenkins_controller_image_tag }}" 
+    path: "{{ jenkins_controller_build_dir }}"
+    state: build
+    force: true
+    build:
+      cache: false
+
+# 5. Deploya la unit Quadlet del controller in /etc/containers/systemd/.
+#    Il nome file (.container) determina il nome del servizio systemd.
+#    notify: al cambio del file, ricarica systemd per rigenerare la .service.
+- name: Deploya la unit Quadlet del controller
+  become: true
+  ansible.builtin.template:
+    src: jenkins-controller.container.j2
+    dest: "/etc/containers/systemd/{{ jenkins_controller_container_name }}.container"
+    mode: "0644"
+  notify: Ricarica systemd daemon
+
+# 6. Forza l'esecuzione degli handler sul momento.
+#    Serve il daemon-reload prima di poter avviare il servizio generato da Quadlet.
+- name: Applica le unit Quadlet
+  ansible.builtin.meta: flush_handlers
+
+# 7. Avvia e abilita il servizio del controller.
+#    Il nome servizio deriva dal nome del file .container.
+- name: Avvia il Jenkins Controller
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ jenkins_controller_container_name }}.service"
+    state: started
+    enabled: true
+
+# 8. Attendi che la UI risponda prima di far partire il ruolo dell'agent in modo tale da non far fallire la GET del file jenkins-agent.jnlp.
+- name: Attendi che la UI del controller sia raggiungibile
+  ansible.builtin.uri:
+    url: "{{ jenkins_controller_url }}/login"
+    status_code: 200
+    timeout: 5
+  register: jenkins_up
+  until: jenkins_up.status == 200
+  retries: "{{ jenkins_controller_wait_retries }}"
+  delay: "{{ jenkins_controller_wait_delay }}"

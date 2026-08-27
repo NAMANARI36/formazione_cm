@@ -1,0 +1,86 @@
+---
+# 1. Recupera il file jenkins-agent.jnlp del nodo dal controller.
+#    Fa una GET autenticata (Basic Auth con credenziali admin dal vault).
+#    Il file XML contiene il secret tra i suoi <argument>.
+- name: Recupera il file JNLP del nodo dal controller
+  become: true
+  ansible.builtin.uri:
+    url: "{{ jenkins_controller_url }}/computer/{{ jenkins_agent_node_name }}/jenkins-agent.jnlp"
+    user: "{{ jenkins_admin_user }}"
+    password: "{{ jenkins_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: jnlp_file
+  no_log: true
+
+# 2. Estrae il secret dall'XML del JNLP.
+- name: Estrai il secret JNLP dal contenuto
+  ansible.builtin.set_fact:
+    jenkins_agent_secret: "{{ jnlp_file.content | regex_search('<application-desc><argument>([a-z0-9]+)</argument>', '\\1') | first }}"
+  no_log: true
+
+# 3. Crea la directory che farà da contesto di build (Dockerfile + file).
+- name: Crea la directory di build dell'agent
+  become: true
+  ansible.builtin.file:
+    path: "{{ jenkins_agent_build_dir }}"
+    state: directory
+    mode: "0755"
+
+# 4. Copia Dockerfile nel contesto di build. (file statici che stanno in files/ del ruolo)
+- name: Copia il Dockerfile dell'agent nel contesto di build
+  become: true
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "{{ jenkins_agent_build_dir }}/Dockerfile"
+    mode: "0644"
+
+ # 5. Builda l'immagine custom dell'agent (con CLI Podman).
+- name: Builda l'immagine custom dell'agent
+  become: true
+  containers.podman.podman_image:
+    name: "{{ jenkins_agent_image }}"
+    tag: "{{ jenkins_agent_image_tag }}"
+    path: "{{ jenkins_agent_build_dir }}"
+    state: build
+    force: true
+
+# 6. Deploya la unit Quadlet del controller in /etc/containers/systemd/ con il secret JNLP iniettato come env.
+#    Il nome file (.container) determina il nome del servizio systemd.
+#    notify: al cambio del file, ricarica systemd per rigenerare la .service.
+- name: Deploya la unit Quadlet dell'agent
+  become: true
+  ansible.builtin.template:
+    src: jenkins-agent.container.j2
+    dest: "/etc/containers/systemd/{{ jenkins_agent_container_name }}.container"
+    mode: "0644"
+  no_log: true
+  notify: Ricarica systemd daemon
+
+# 7. Forza l'esecuzione degli handler sul momento.
+#    Serve il daemon-reload prima di poter avviare il servizio generato da Quadlet.
+- name: Applica le unit Quadlet
+  ansible.builtin.meta: flush_handlers
+
+# 8. Avvia e abilita il servizio dell'agent.
+- name: Avvia il Jenkins Agent
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ jenkins_agent_container_name }}.service"
+    state: started
+    enabled: true
+
+# 9. Verifica che il nodo risulti online sul controller.
+- name: Attendi che l'agent sia online sul controller
+  become: true
+  ansible.builtin.uri:
+    url: "{{ jenkins_controller_url }}/computer/{{ jenkins_agent_node_name }}/api/json"
+    user: "{{ jenkins_admin_user }}"
+    password: "{{ jenkins_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: node_status
+  until: node_status.json.offline == false
+  retries: "{{ jenkins_agent_wait_retries }}"
+  delay: "{{ jenkins_agent_wait_delay }}"
+  no_log: true
